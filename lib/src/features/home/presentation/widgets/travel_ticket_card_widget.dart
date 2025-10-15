@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namma_wallet/src/common/helper/date_time_converter.dart';
 import 'package:namma_wallet/src/common/routing/app_routes.dart';
+import 'package:namma_wallet/src/common/services/haptic_service.dart';
 import 'package:namma_wallet/src/common/theme/styles.dart';
 import 'package:namma_wallet/src/features/home/domain/generic_details_model.dart';
 import 'package:namma_wallet/src/features/home/presentation/widgets/hilight_widget.dart';
@@ -135,6 +136,9 @@ class TravelTicketCardWidget extends StatelessWidget {
               //* See more button
               IconButton(
                 onPressed: () async {
+                  // Haptic feedback for ticket detail view
+                  await HapticService.light();
+
                   final wasDeleted = await context.pushNamed<bool>(
                     AppRoute.ticketView.name,
                     extra: ticket,

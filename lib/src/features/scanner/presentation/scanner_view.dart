@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namma_wallet/src/common/routing/app_routes.dart';
+import 'package:namma_wallet/src/common/services/haptic_service.dart';
 import 'package:namma_wallet/src/features/clipboard/application/clipboard_service.dart';
 import 'package:namma_wallet/src/features/common/generated/assets.gen.dart';
 import 'package:namma_wallet/src/features/irctc/application/irctc_qr_parser.dart';
@@ -63,6 +64,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
   Future<void> _handlePDFPick() async {
     if (_isProcessingPDF) return;
 
+    // Haptic feedback for PDF picker action
+    await HapticService.medium();
+
     setState(() {
       _isProcessingPDF = true;
     });
@@ -92,6 +96,9 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
 
   Future<void> _handleClipboardRead() async {
     if (_isPasting) return;
+
+    // Haptic feedback for clipboard read action
+    await HapticService.medium();
 
     setState(() {
       _isPasting = true;
@@ -212,8 +219,12 @@ class _TicketScannerPageState extends State<TicketScannerPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 12),
                                   shape: const StadiumBorder()),
-                              onPressed: () {
-                                context.pushNamed(
+                              onPressed: () async {
+                                // Haptic feedback for scan button
+                                await HapticService.medium();
+
+                                if (!mounted) return;
+                                await context.pushNamed(
                                   AppRoute.barcodeScanner.name,
                                   extra: (BarcodeCapture capture) async {
                                     // Handle the scanned barcode

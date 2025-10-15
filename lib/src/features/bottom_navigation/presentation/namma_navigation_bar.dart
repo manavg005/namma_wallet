@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namma_wallet/src/common/routing/app_routes.dart';
+import 'package:namma_wallet/src/common/services/haptic_service.dart';
 import 'package:namma_wallet/src/features/bottom_navigation/presentation/widgets/nav_bar.dart';
 
 class NammaNavigationBar extends StatefulWidget {
@@ -70,7 +70,8 @@ class _NammaNavigationBarState extends State<NammaNavigationBar> {
         _pendingIndex = index;
       });
 
-      HapticFeedback.selectionClick();
+      // Provide haptic feedback for tab switching
+      HapticService.selection();
 
       // Use cancellable Timer for navigation delay
       _navigationTimer = Timer(const Duration(milliseconds: 100), () {

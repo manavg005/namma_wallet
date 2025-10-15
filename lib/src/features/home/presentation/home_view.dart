@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namma_wallet/src/common/routing/app_routes.dart';
 import 'package:namma_wallet/src/common/services/database_helper.dart';
+import 'package:namma_wallet/src/common/services/haptic_service.dart';
 import 'package:namma_wallet/src/common/widgets/snackbar_widget.dart';
 import 'package:namma_wallet/src/features/common/domain/travel_ticket_model.dart';
 import 'package:namma_wallet/src/features/home/domain/generic_details_model.dart';
@@ -28,6 +29,8 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   List<TravelTicketModel> _travelTickets = [];
   List<TravelTicketModel> _eventTickets = [];
+  bool _hasTriggeredSwipeHaptic = false;
+  double _dragStartY = 0;
 
   @override
   void initState() {
@@ -40,6 +43,9 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _isLoading = true;
       });
+
+      // Haptic feedback for pull-to-refresh action
+      await HapticService.light();
 
       final ticketMaps = await DatabaseHelper.instance.fetchAllTravelTickets();
 
@@ -272,8 +278,24 @@ class _HomePageState extends State<HomePage> {
       return CardModel(
         radius: const Radius.circular(30),
         shadowColor: Colors.transparent,
-        child: InkWell(
+        child: Listener(
+          onPointerDown: (details) {
+            _dragStartY = details.position.dy;
+            _hasTriggeredSwipeHaptic = false;
+          },
+          onPointerMove: (details) {
+            // Trigger haptic when vertical swipe distance exceeds threshold
+            final dragDistance = (details.position.dy - _dragStartY).abs();
+            if (dragDistance > 50 && !_hasTriggeredSwipeHaptic) {
+              HapticService.medium();
+              _hasTriggeredSwipeHaptic = true;
+            }
+          },
+          child: InkWell(
             onTap: () async {
+              // Haptic feedback for card tap
+              await HapticService.light();
+
               final wasDeleted = await context.pushNamed<bool>(
                 AppRoute.ticketView.name,
                 extra: genericTicket,
@@ -286,7 +308,9 @@ class _HomePageState extends State<HomePage> {
             child: TravelTicketCardWidget(
               ticket: genericTicket,
               onTicketDeleted: _loadTicketData,
-            )),
+            ),
+          ),
+        ),
       );
     }).toList();
 
@@ -300,12 +324,12 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const UserProfileWidget(),
-                Padding(
-                  padding: const EdgeInsets.all(16),
+                const Padding(
+                  padding: EdgeInsets.all(16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Tickets',
                         style: TextStyle(
                           fontSize: 18,
@@ -313,7 +337,7 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.black,
                         ),
                       ),
-                      const SizedBox.shrink(),
+                      SizedBox.shrink(),
                     ],
                   ),
                 ),
@@ -391,45 +415,48 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 16),
                       //* More cards list view
-                      _eventTickets.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(
-                                child: Text(
-                                  'No event tickets found',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
+                      if (_eventTickets.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(
+                            child: Text(
+                              'No event tickets found',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
                               ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _eventTickets.length,
-                              itemBuilder: (context, index) {
-                                final eventTicket = _eventTickets[index];
-                                final genericEvent =
-                                    _convertToGenericDetails(eventTicket);
-                                return InkWell(
-                                  onTap: () async {
-                                    final wasDeleted =
-                                        await context.pushNamed<bool>(
-                                      AppRoute.ticketView.name,
-                                      extra: genericEvent,
-                                    );
-
-                                    if (wasDeleted == true && mounted) {
-                                      await _loadTicketData();
-                                    }
-                                  },
-                                  child: EventTicketCardWidget(
-                                    ticket: genericEvent,
-                                  ),
-                                );
-                              },
                             ),
+                          ),
+                        )
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _eventTickets.length,
+                          itemBuilder: (context, index) {
+                            final eventTicket = _eventTickets[index];
+                            final genericEvent =
+                                _convertToGenericDetails(eventTicket);
+                            return InkWell(
+                              onTap: () async {
+                                // Haptic feedback for event ticket tap
+                                await HapticService.light();
+                                final wasDeleted =
+                                    await context.pushNamed<bool>(
+                                  AppRoute.ticketView.name,
+                                  extra: genericEvent,
+                                );
+
+                                if (wasDeleted == true && mounted) {
+                                  await _loadTicketData();
+                                }
+                              },
+                              child: EventTicketCardWidget(
+                                ticket: genericEvent,
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ),
